@@ -103,7 +103,7 @@ export default function ChangePage() {
                     <input
                         type="date"
                         inputMode="numeric"
-                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-3 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all [appearance:none]"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
                     />
