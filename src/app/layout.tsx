@@ -23,14 +23,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SWRegister />
 
         <div className="max-w-4xl mx-auto p-4">
-          <header className="flex items-center justify-between mb-4">
-            <nav className="flex gap-3 text-sm">
-              <a className="px-3 py-2 rounded-xl border" href="/">{t.home}</a>
-              <a className="px-3 py-2 rounded-xl border" href="/today">{t.today}</a>
-              <a className="px-3 py-2 rounded-xl border" href="/change">{t.addChange}</a>
-              <a className="px-3 py-2 rounded-xl border" href="/children">{t.children}</a>
+          <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md shadow-sm rounded-2xl mb-6 p-3 border border-[var(--color-border)]">
+            <nav className="flex flex-wrap gap-2 justify-center sm:justify-start">
+              {[
+                { label: t.home, href: '/' },
+                { label: t.today, href: '/today' },
+                { label: t.addChange, href: '/change' },
+                { label: t.children, href: '/children' },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="px-4 py-2 rounded-xl border border-[var(--color-border)] bg-white hover:bg-[var(--color-primary)] hover:text-white transition-all duration-200 shadow-sm"
+                >
+                  {item.label}
+                </a>
+              ))}
             </nav>
           </header>
+
           {children}
         </div>
       </body>

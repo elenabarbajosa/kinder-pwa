@@ -60,71 +60,81 @@ export default function ChangePage() {
     };
 
     return (
-        <main className="p-4 max-w-md mx-auto space-y-3">
-            <h1 className="text-2xl font-semibold">Registrar cambio de horario</h1>
+        <main className="min-h-screen p-6 flex justify-center bg-[var(--color-bg)]">
+            <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)]">
+                <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)] text-center">
+                    Registrar cambio de horario
+                </h1>
 
-            <select
-                className="border rounded-xl px-3 py-2 w-full"
-                value={childId}
-                onChange={(e) => setChildId(e.target.value)}
-            >
-                <option value="">Elige alumn@…</option>
-                {children.map((c) => (
-                    <option key={c.id} value={c.id}>
-                        {c.first_name}
-                    </option>
-                ))}
-            </select>
+                {/* Selector de alumn@ */}
+                <select
+                    className="border border-[var(--color-border)] rounded-xl px-3 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                    value={childId}
+                    onChange={(e) => setChildId(e.target.value)}
+                >
+                    <option value="">Elige alumn@…</option>
+                    {children.map((c) => (
+                        <option key={c.id} value={c.id}>
+                            {c.first_name}
+                        </option>
+                    ))}
+                </select>
 
-            <label className="block text-sm">
-                Fecha
-                <input
-                    type="date"
-                    className="border rounded-xl px-3 py-2 w-full"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                />
-            </label>
-
-            <div className="grid grid-cols-2 gap-2">
-                <label className="text-sm">
-                    Nueva entrada
+                {/* Fecha */}
+                <label className="block text-sm mb-2 font-medium text-gray-700">
+                    Fecha
                     <input
-                        type="time"
-                        className="border rounded-xl px-3 py-2 w-full"
-                        value={newIn}
-                        onChange={(e) => setNewIn(e.target.value)}
+                        type="date"
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
                     />
                 </label>
-                <label className="text-sm">
-                    Nueva salida
+
+                {/* Horas */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <label className="text-sm font-medium text-gray-700">
+                        Nueva entrada
+                        <input
+                            type="time"
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                            value={newIn}
+                            onChange={(e) => setNewIn(e.target.value)}
+                        />
+                    </label>
+                    <label className="text-sm font-medium text-gray-700">
+                        Nueva salida
+                        <input
+                            type="time"
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                            value={newOut}
+                            onChange={(e) => setNewOut(e.target.value)}
+                        />
+                    </label>
+                </div>
+
+                {/* Nota */}
+                <label className="block text-sm mb-4 font-medium text-gray-700">
+                    Nota
                     <input
-                        type="time"
-                        className="border rounded-xl px-3 py-2 w-full"
-                        value={newOut}
-                        onChange={(e) => setNewOut(e.target.value)}
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="Opcional"
                     />
                 </label>
+
+                {/* Botón Guardar */}
+                <button
+                    onClick={submit}
+                    disabled={saving}
+                    className="w-full px-5 py-2 rounded-xl bg-[var(--color-primary)] text-white font-medium shadow-sm hover:bg-[var(--color-primary-dark)] transition-all disabled:opacity-50"
+                >
+                    {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+
+                {ok && <p className="mt-3 text-center text-green-600 font-medium">{ok}</p>}
             </div>
-
-            <label className="block text-sm">
-                Nota
-                <input
-                    className="border rounded-xl px-3 py-2 w-full"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Opcional"
-                />
-            </label>
-
-            <button
-                onClick={submit}
-                disabled={saving}
-                className="px-4 py-2 rounded-xl bg-black text-white"
-            >
-                {saving ? 'Guardando…' : 'Guardar'}
-            </button>
-            {ok && <span className="ml-2 text-green-700">{ok}</span>}
         </main>
     );
 }

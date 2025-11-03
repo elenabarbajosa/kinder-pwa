@@ -57,16 +57,20 @@ export default function Today() {
 
     return (
         <main className="p-4 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-4">Hoy</h1>
+            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Hoy</h1>
 
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-6 items-center">
                 <select
-                    className="border rounded-xl px-3 py-2"
+                    className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value as any)}
                 >
                     <option value="all">Todas las clases</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                            {c.name}
+                        </option>
+                    ))}
                 </select>
 
                 <label className="flex items-center gap-2 text-sm">
@@ -74,37 +78,58 @@ export default function Today() {
                         type="checkbox"
                         checked={changedOnly}
                         onChange={(e) => setChangedOnly(e.target.checked)}
+                        className="accent-[var(--color-primary)]"
                     />
                     Solo cambios
                 </label>
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-3">
                 {visible
-                    .sort((a, b) => a.in_time.localeCompare(b.in_time))
-                    .map(r => (
-                        <div key={r.child_id} className="rounded-2xl border p-3 flex items-center justify-between">
+                    .sort((a, b) => {
+                        // 1️⃣ Changed items (with exception_id) go first
+                        if (a.exception_id && !b.exception_id) return -1;
+                        if (!a.exception_id && b.exception_id) return 1;
+                        // 2️⃣ Then sort by arrival time
+                        return a.in_time.localeCompare(b.in_time);
+                    })
+                    .map((r) => (
+                        <div
+                            key={r.child_id}
+                            className={`rounded-2xl border border-[var(--color-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-between ${r.exception_id
+                                    ? 'bg-[#ffeaf3] border-[var(--color-primary)] border-l-4' // highlighted style
+                                    : 'bg-white'
+                                }`}
+                        >
                             <div>
-                                <div className="text-lg font-medium">{r.first_name}</div>
-                                {r.note && <div className="text-sm text-gray-600 mt-1">{r.note}</div>}
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm">
-                                    Entrada <span className="font-medium">{r.in_time}</span>
+                                <div className="text-lg font-semibold text-[var(--color-primary-dark)]">
+                                    {r.first_name}
                                 </div>
-                                <div className="text-sm">
-                                    Salida <span className="font-medium">{r.out_time}</span>
+                                {r.note && (
+                                    <div className="text-sm text-gray-600 mt-1">{r.note}</div>
+                                )}
+                            </div>
+                            <div className="text-right text-sm text-gray-700">
+                                <div>
+                                    Entrada: <span className="font-medium">{r.in_time}</span>
+                                </div>
+                                <div>
+                                    Salida: <span className="font-medium">{r.out_time}</span>
                                 </div>
                                 {r.exception_id && (
-                                    <div className="text-xs mt-1 px-2 py-1 rounded-full border inline-block">
+                                    <div className="text-xs mt-1 px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-primary-dark)] inline-block">
                                         {badge(r)}
                                     </div>
                                 )}
                             </div>
                         </div>
                     ))}
+
+
                 {visible.length === 0 && (
-                    <div className="text-sm text-gray-600">No hay alumn@s para mostrar.</div>
+                    <div className="text-sm text-gray-600 text-center py-4 bg-white border border-[var(--color-border)] rounded-2xl shadow-sm">
+                        No hay alumn@s para mostrar.
+                    </div>
                 )}
             </div>
         </main>

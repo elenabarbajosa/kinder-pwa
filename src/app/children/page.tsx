@@ -41,25 +41,35 @@ export default function ChildrenPage() {
 
     return (
         <main className="p-4 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-4">Alumn@s</h1>
+            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Alumn@s</h1>
 
-            <div className="grid gap-2">
-                {children.map(k => (
-                    <div key={k.id} className="rounded-2xl border p-3 flex items-center justify-between">
+            <div className="grid gap-3">
+                {children.map((k) => (
+                    <div
+                        key={k.id}
+                        className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-between"
+                    >
                         <div>
-                            <div className="text-lg font-medium">{k.first_name}</div>
+                            <div className="text-lg font-semibold text-[var(--color-primary-dark)]">{k.first_name}</div>
                             <div className="text-sm text-gray-600">
-                                Clase: {classNameFor(k.classroom_id)}
+                                Aula: <span className="font-medium">{classNameFor(k.classroom_id)}</span>
                             </div>
                         </div>
-                        <div className="text-right text-sm">
-                            <div>Entrada <span className="font-medium">{k.default_in}</span></div>
-                            <div>Salida <span className="font-medium">{k.default_out}</span></div>
+                        <div className="text-right text-sm text-gray-700">
+                            <div>
+                                Entrada: <span className="font-medium">{k.default_in}</span>
+                            </div>
+                            <div>
+                                Salida: <span className="font-medium">{k.default_out}</span>
+                            </div>
                         </div>
                     </div>
                 ))}
+
                 {children.length === 0 && (
-                    <div className="text-sm text-gray-600">No hay alumn@s aún.</div>
+                    <div className="text-sm text-gray-600 text-center py-4 bg-white border border-[var(--color-border)] rounded-2xl shadow-sm">
+                        No hay alumn@s aún.
+                    </div>
                 )}
             </div>
         </main>
