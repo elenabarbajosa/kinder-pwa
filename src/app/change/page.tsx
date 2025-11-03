@@ -13,14 +13,14 @@ type Child = {
 export default function ChangePage() {
     const [children, setChildren] = useState<Child[]>([]);
     const [childId, setChildId] = useState('');
-    const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10)); // YYYY-MM-DD
+    const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
     const [newIn, setNewIn] = useState<string>('');
     const [newOut, setNewOut] = useState<string>('');
     const [note, setNote] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [ok, setOk] = useState<string>('');
 
-    // cargar alumn@s para el desplegable (now includes default times)
+    // cargar alumn@s para el desplegable (con horarios por defecto)
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -85,7 +85,7 @@ export default function ChangePage() {
 
                 {/* Selector de alumn@ */}
                 <select
-                    className="border border-[var(--color-border)] rounded-xl px-3 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                    className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     value={childId}
                     onChange={(e) => handleSelectChild(e.target.value)}
                 >
@@ -102,7 +102,8 @@ export default function ChangePage() {
                     Fecha
                     <input
                         type="date"
-                        className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        inputMode="numeric"
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
                     />
@@ -114,8 +115,9 @@ export default function ChangePage() {
                         Nueva entrada
                         <input
                             type="time"
-                            step="300"
-                            className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                            inputMode="numeric"
+                            step={300}
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                             value={newIn}
                             onChange={(e) => setNewIn(e.target.value)}
                         />
@@ -124,8 +126,9 @@ export default function ChangePage() {
                         Nueva salida
                         <input
                             type="time"
-                            step="300"
-                            className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                            inputMode="numeric"
+                            step={300}
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                             value={newOut}
                             onChange={(e) => setNewOut(e.target.value)}
                         />
@@ -136,7 +139,7 @@ export default function ChangePage() {
                 <label className="block text-sm mb-4 font-medium text-gray-700">
                     Nota
                     <input
-                        className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder="Opcional"
