@@ -20,7 +20,12 @@ export default function ChangePage() {
     const [saving, setSaving] = useState(false);
     const [ok, setOk] = useState<string>('');
 
-    // cargar alumn@s para el desplegable (con horarios por defecto)
+    // new states for bus and absence
+    const [busMorning, setBusMorning] = useState(false);
+    const [busAfternoon, setBusAfternoon] = useState(false);
+    const [absent, setAbsent] = useState(false);
+
+    // cargar alumn@s (with default schedules)
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -44,8 +49,8 @@ export default function ChangePage() {
     };
 
     const submit = async () => {
-        if (!childId || (!newIn && !newOut)) {
-            alert('Elige un/a alumn@ y al menos una hora nueva.');
+        if (!childId) {
+            alert('Elige un/a alumn@ antes de guardar.');
             return;
         }
         setSaving(true);
@@ -58,6 +63,9 @@ export default function ChangePage() {
             date,
             new_in: newIn || null,
             new_out: newOut || null,
+            bus_morning_override: busMorning,
+            bus_afternoon_override: busAfternoon,
+            absent,
             note: note || null,
             created_by: userId,
         });
@@ -73,6 +81,9 @@ export default function ChangePage() {
         setNewIn('');
         setNewOut('');
         setNote('');
+        setBusMorning(false);
+        setBusAfternoon(false);
+        setAbsent(false);
         setTimeout(() => setOk(''), 1500);
     };
 
@@ -132,6 +143,39 @@ export default function ChangePage() {
                             value={newOut}
                             onChange={(e) => setNewOut(e.target.value)}
                         />
+                    </label>
+                </div>
+
+                {/* Opciones de bus y ausencia */}
+                <div className="flex flex-col gap-3 mb-4">
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={busMorning}
+                            onChange={(e) => setBusMorning(e.target.checked)}
+                            className="accent-[var(--color-primary)]"
+                        />
+                        Bus (mañana)
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={busAfternoon}
+                            onChange={(e) => setBusAfternoon(e.target.checked)}
+                            className="accent-[var(--color-primary)]"
+                        />
+                        Bus (tarde)
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={absent}
+                            onChange={(e) => setAbsent(e.target.checked)}
+                            className="accent-purple-500"
+                        />
+                        Ausente
                     </label>
                 </div>
 

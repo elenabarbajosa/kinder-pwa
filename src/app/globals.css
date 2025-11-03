@@ -1,17 +1,30 @@
 @import "tailwindcss";
 
 :root {
+  /* Existing theme colors */
   --color-bg: #fff8fb;
-  /* very light pink background */
   --color-primary: #ff6fa8;
-  /* main pink */
   --color-primary-dark: #e65b94;
-  /* darker pink for hover */
   --color-text: #3a3a3a;
-  /* soft dark text */
   --color-border: #f0c9d9;
-  /* light pink border */
+
+  /* 🟦 Bus change highlight (blue) */
+  --color-bus-change: #e3f0ff;
+  --color-bus-border: #79aefc;
+
+  /* 💜 Absence highlight (purple) */
+  --color-absent: #f0e6ff;
+  --color-absent-border: #b38cff;
+
+  /* 💗 Schedule/time change highlight (pink) */
+  --color-time-change: #ffeaf3;
+  --color-time-border: #ff6fa8;
+
+  /* ⚪ Default (no changes) */
+  --color-card-bg: #ffffff;
+  --color-card-border: #f0c9d9;
 }
+
 
 
 @theme inline {
@@ -32,4 +45,8 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: 'Inter', sans-serif;
+}
+
+.card-transition {
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
