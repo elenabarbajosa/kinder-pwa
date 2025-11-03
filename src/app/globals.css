@@ -4,7 +4,7 @@
   /* Existing theme colors */
   --color-bg: #fff8fb;
   --color-primary: #ff6fa8;
-  --color-primary-dark: #e65b94;
+  --color-primary-dark: #d44d85;
   --color-text: #3a3a3a;
   --color-border: #f0c9d9;
 
@@ -23,7 +23,14 @@
   /* ⚪ Default (no changes) */
   --color-card-bg: #ffffff;
   --color-card-border: #f0c9d9;
+
+  --color-text-blue: #225ab6;
+  /* bright blue for bus changes */
+  --color-text-purple: #5228b4;
+  /* purple for absences */
+
 }
+
 
 
 

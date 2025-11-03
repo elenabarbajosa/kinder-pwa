@@ -2,7 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
-import { Trash2, Edit, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 type Classroom = { id: string; name: string };
 type Row = {
@@ -27,25 +27,17 @@ export default function Today() {
     const [rows, setRows] = useState<Row[]>([]);
     const [selectedClass, setSelectedClass] = useState<'all' | string>('all');
     const [changedOnly, setChangedOnly] = useState(false);
+    const [filterBusMorning, setFilterBusMorning] = useState(false);
+    const [filterBusAfternoon, setFilterBusAfternoon] = useState(false);
+    const [filterAbsent, setFilterAbsent] = useState(false);
 
-    // modal state
-    const [editing, setEditing] = useState<Row | null>(null);
-    const [newIn, setNewIn] = useState('');
-    const [newOut, setNewOut] = useState('');
-    const [note, setNote] = useState('');
-    const [busMorning, setBusMorning] = useState(false);
-    const [busAfternoon, setBusAfternoon] = useState(false);
-    const [absent, setAbsent] = useState(false);
-
-    // 🔄 force fresh query
+    // load today_view
     const loadToday = async () => {
-        const { data, error } = await supabase
-            .from('today_view')
-            .select('*')
-            .order('first_name', { ascending: true });
+        const { data, error } = await supabase.from('today_view').select('*');
         if (!error) setRows((data as Row[]) ?? []);
     };
 
+    // load classrooms and today data
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -57,59 +49,29 @@ export default function Today() {
         loadToday();
     }, []);
 
-    // 🗑️ Delete exception
-    const handleDelete = async (exceptionId: string | null) => {
-        if (!exceptionId) return alert('Este alumno no tiene cambio para eliminar.');
-        if (!confirm('¿Seguro que quieres eliminar este cambio?')) return;
+    // ❌ revert change (delete exception)
+    const handleRevert = async (exceptionId: string | null, childName: string) => {
+        if (!exceptionId) return alert('Este alumn@ no tiene cambio para revertir.');
+        if (!confirm(`¿Seguro que quieres eliminar el cambio de ${childName}?`)) return;
 
         const { error } = await supabase.from('exceptions').delete().eq('id', exceptionId);
-        if (error) return alert('Error al eliminar: ' + error.message);
+        if (error) {
+            alert('Error al revertir el cambio: ' + error.message);
+            return;
+        }
 
-        // wait briefly so the view updates
-        await new Promise((r) => setTimeout(r, 500));
         await loadToday();
     };
 
-    // ✏️ Open modal for editing
-    const handleEdit = (r: Row) => {
-        setEditing(r);
-        setNewIn(r.in_time);
-        setNewOut(r.out_time);
-        setNote(r.note || '');
-        setBusMorning(r.bus_morning_today);
-        setBusAfternoon(r.bus_afternoon_today);
-        setAbsent(r.absent);
-    };
-
-    // 💾 Update exception
-    const handleUpdate = async () => {
-        if (!editing?.exception_id) return;
-
-        const { error } = await supabase
-            .from('exceptions')
-            .update({
-                new_in: newIn || null,
-                new_out: newOut || null,
-                note: note || null,
-                bus_morning_override: busMorning,
-                bus_afternoon_override: busAfternoon,
-                absent,
-            })
-            .eq('id', editing.exception_id);
-
-        if (error) return alert('Error al actualizar: ' + error.message);
-
-        setEditing(null);
-        // wait briefly so view refreshes with new data
-        await new Promise((r) => setTimeout(r, 500));
-        await loadToday();
-    };
-
+    // filters
     const visible = rows
         .filter((r) => selectedClass === 'all' || r.classroom_id === selectedClass)
-        .filter((r) => !changedOnly || r.exception_id);
+        .filter((r) => !changedOnly || r.exception_id)
+        .filter((r) => !filterBusMorning || r.bus_morning_today)
+        .filter((r) => !filterBusAfternoon || r.bus_afternoon_today)
+        .filter((r) => !filterAbsent || r.absent);
 
-    // counts for summary
+    // summary counts
     const total = visible.length;
     const absentCount = visible.filter((r) => r.absent).length;
     const busChangeCount = visible.filter(
@@ -120,13 +82,21 @@ export default function Today() {
     const timeChangeCount = visible.filter((r) => r.exception_id && !r.absent).length;
 
     const cardColor = (r: Row) => {
-        if (r.absent) return 'bg-[var(--color-absent)] border-[var(--color-absent-border)]';
+        if (r.absent)
+            return 'bg-[var(--color-absent)] border-[var(--color-absent-border)]';
+
         const morningChanged = r.bus_morning_today !== r.takes_bus_morning;
         const afternoonChanged = r.bus_afternoon_today !== r.takes_bus_afternoon;
-        if (morningChanged || afternoonChanged)
+        const busChanged = morningChanged || afternoonChanged;
+        const timeChanged =
+            r.exception_id && (r.in_time !== r.default_in || r.out_time !== r.default_out);
+
+        if (busChanged && timeChanged)
             return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
-        if (r.exception_id)
+        if (timeChanged)
             return 'bg-[var(--color-time-change)] border-[var(--color-time-border)]';
+        if (busChanged)
+            return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
         return 'bg-[var(--color-card-bg)] border-[var(--color-card-border)]';
     };
 
@@ -181,6 +151,38 @@ export default function Today() {
                 </label>
             </div>
 
+            <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm flex flex-wrap gap-3 text-sm mt-2 mb-4">
+                <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={filterBusMorning}
+                        onChange={(e) => setFilterBusMorning(e.target.checked)}
+                        className="accent-[var(--color-primary)]"
+                    />
+                    Bus mañana
+                </label>
+
+                <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={filterBusAfternoon}
+                        onChange={(e) => setFilterBusAfternoon(e.target.checked)}
+                        className="accent-[var(--color-primary)]"
+                    />
+                    Bus tarde
+                </label>
+
+                <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={filterAbsent}
+                        onChange={(e) => setFilterAbsent(e.target.checked)}
+                        className="accent-purple-500"
+                    />
+                    Ausente
+                </label>
+            </div>
+
             {/* Summary bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-2xl p-3 mb-4 shadow-sm text-sm text-gray-700 flex flex-wrap justify-between">
                 <span>Total: <strong>{total}</strong></span>
@@ -199,65 +201,22 @@ export default function Today() {
             <div className="grid gap-3">
                 {visible
                     .sort((a, b) => {
+                        // 1️⃣ Changed students (exception_id) first
                         if (a.exception_id && !b.exception_id) return -1;
                         if (!a.exception_id && b.exception_id) return 1;
+
+                        // 2️⃣ Then sort by time
                         return a.in_time.localeCompare(b.in_time);
                     })
                     .map((r) => (
-                        <div
+                        <SwipeCard
                             key={r.child_id}
-                            className={`rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-between card-transition ${cardColor(
-                                r
-                            )}`}
-                        >
-                            <div>
-                                <div className="text-lg font-semibold text-[var(--color-primary-dark)]">
-                                    {r.first_name}
-                                </div>
-                                {busBadge(r) && (
-                                    <div className="text-xs text-blue-700 mt-1">{busBadge(r)}</div>
-                                )}
-                                {r.note && (
-                                    <div className="text-sm text-gray-600 mt-1">{r.note}</div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col items-end justify-between gap-2">
-                                <div className="text-right text-sm text-gray-700">
-                                    <div>
-                                        Entrada: <span className="font-medium">{r.in_time}</span>
-                                    </div>
-                                    <div>
-                                        Salida: <span className="font-medium">{r.out_time}</span>
-                                    </div>
-                                    {r.exception_id && (
-                                        <div className="text-xs mt-1 px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-primary-dark)] inline-block">
-                                            {badge(r)}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Action buttons */}
-                                {r.exception_id && (
-                                    <div className="flex gap-2 text-gray-500">
-                                        <button
-                                            onClick={() => handleEdit(r)}
-                                            className="hover:text-[var(--color-primary-dark)] transition"
-                                            title="Editar cambio"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(r.exception_id)}
-                                            className="hover:text-red-500 transition"
-                                            title="Eliminar cambio"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                            row={r}
+                            cardColor={cardColor}
+                            badge={badge}
+                            busBadge={busBadge}
+                            handleRevert={handleRevert}
+                        />
                     ))}
 
                 {visible.length === 0 && (
@@ -266,104 +225,84 @@ export default function Today() {
                     </div>
                 )}
             </div>
+        </main>
+    );
+}
 
-            {/* ✏️ Edit Modal */}
-            {editing && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm border border-[var(--color-border)] shadow-lg">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-[var(--color-primary-dark)]">
-                                Editar: {editing.first_name}
-                            </h2>
-                            <button
-                                onClick={() => setEditing(null)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <X size={20} />
-                            </button>
+/* 🧩 Subcomponent for swipe-to-delete */
+function SwipeCard({
+    row: r,
+    cardColor,
+    badge,
+    busBadge,
+    handleRevert,
+}: {
+    row: Row;
+    cardColor: (r: Row) => string;
+    badge: (r: Row) => string;
+    busBadge: (r: Row) => string;
+    handleRevert: (id: string | null, name: string) => void;
+}) {
+    return (
+        <div className="relative">
+            {/* ❌ background under card */}
+            <div className="absolute inset-0 flex items-center justify-end pr-6 z-0">
+                <span className="text-red-600 text-3xl select-none">❌</span>
+            </div>
+
+            {/* draggable foreground card */}
+            <motion.div
+                className={`relative z-10 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 card-transition overflow-hidden ${cardColor(
+                    r
+                )}`}
+                drag="x"
+                dragConstraints={{ left: -100, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(event, info) => {
+                    if (info.offset.x < -80 && r.exception_id) {
+                        if (confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)) {
+                            handleRevert(r.exception_id, r.first_name);
+                        }
+                    }
+                }}
+            >
+                <div className="flex justify-between items-center">
+                    <div>
+                        <div
+                            className={`text-lg font-semibold ${r.absent
+                                ? 'text-[var(--color-text-purple)]'
+                                : r.bus_morning_today !== r.takes_bus_morning ||
+                                    r.bus_afternoon_today !== r.takes_bus_afternoon
+                                    ? 'text-[var(--color-text-blue)]'
+                                    : 'text-[var(--color-primary-dark)]'
+                                }`}
+                        >
+                            {r.first_name}
+                        </div>
+                        {busBadge(r) && (
+                            <div className="text-xs text-blue-700 mt-1">{busBadge(r)}</div>
+                        )}
+                        {r.note && <div className="text-sm text-gray-600 mt-1">{r.note}</div>}
+                    </div>
+
+                    <div className="text-right text-sm text-gray-700">
+                        <div>
+                            Entrada: <span className="font-medium">{r.in_time}</span>
+                        </div>
+                        <div>
+                            Salida: <span className="font-medium">{r.out_time}</span>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Nueva entrada
-                                <input
-                                    type="time"
-                                    value={newIn}
-                                    onChange={(e) => setNewIn(e.target.value)}
-                                    className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                                />
-                            </label>
-
-                            <label className="block text-sm font-medium text-gray-700">
-                                Nueva salida
-                                <input
-                                    type="time"
-                                    value={newOut}
-                                    onChange={(e) => setNewOut(e.target.value)}
-                                    className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                                />
-                            </label>
-
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={busMorning}
-                                        onChange={(e) => setBusMorning(e.target.checked)}
-                                        className="accent-[var(--color-primary)]"
-                                    />
-                                    Bus (mañana)
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={busAfternoon}
-                                        onChange={(e) => setBusAfternoon(e.target.checked)}
-                                        className="accent-[var(--color-primary)]"
-                                    />
-                                    Bus (tarde)
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={absent}
-                                        onChange={(e) => setAbsent(e.target.checked)}
-                                        className="accent-purple-500"
-                                    />
-                                    Ausente
-                                </label>
-                            </div>
-
-                            <label className="block text-sm font-medium text-gray-700">
-                                Nota
-                                <input
-                                    type="text"
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                                />
-                            </label>
-                        </div>
-
-                        <div className="flex justify-end mt-5 gap-3">
-                            <button
-                                onClick={() => setEditing(null)}
-                                className="px-4 py-2 rounded-xl border border-[var(--color-border)] hover:bg-gray-100 transition"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleUpdate}
-                                className="px-4 py-2 rounded-xl bg-[var(--color-primary)] text-white font-medium hover:bg-[var(--color-primary-dark)] transition"
-                            >
-                                Guardar
-                            </button>
-                        </div>
+                        {r.exception_id &&
+                            !r.absent &&
+                            (r.in_time !== r.default_in || r.out_time !== r.default_out) && (
+                                <div className="text-xs mt-1 px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-primary-dark)] inline-block">
+                                    {badge(r)}
+                                </div>
+                            )}
                     </div>
                 </div>
-            )}
-        </main>
+            </motion.div>
+        </div>
     );
 }
