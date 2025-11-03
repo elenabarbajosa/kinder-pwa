@@ -280,7 +280,9 @@ function SwipeCard({
                             {r.first_name}
                         </div>
                         {busBadge(r) && (
-                            <div className="text-xs text-blue-700 mt-1">{busBadge(r)}</div>
+                            <div className="text-sm text-black-900 mt-1 px-2 py-1 rounded-md bg-gray-100 inline-block shadow-sm">
+                                {busBadge(r)}
+                            </div>
                         )}
                         {r.note && <div className="text-sm text-gray-600 mt-1">{r.note}</div>}
                     </div>
