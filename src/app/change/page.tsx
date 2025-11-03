@@ -8,6 +8,8 @@ type Child = {
     first_name: string;
     default_in: string;
     default_out: string;
+    takes_bus_morning: boolean;
+    takes_bus_afternoon: boolean;
 };
 
 export default function ChangePage() {
@@ -30,9 +32,11 @@ export default function ChangePage() {
         (async () => {
             const { data, error } = await supabase
                 .from('children')
-                .select('id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon')
+                .select(
+                    'id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon'
+                )
                 .order('first_name');
-            if (!error) setChildren(data ?? []);
+            if (!error) setChildren((data as Child[]) ?? []);
         })();
     }, []);
 
@@ -42,7 +46,7 @@ export default function ChangePage() {
         if (selected) {
             setNewIn(selected.default_in || '');
             setNewOut(selected.default_out || '');
-            // 👇 New lines: set bus defaults based on database values
+            // ✅ Default to database bus settings
             setBusMorning(!!selected.takes_bus_morning);
             setBusAfternoon(!!selected.takes_bus_afternoon);
         } else {
@@ -52,7 +56,6 @@ export default function ChangePage() {
             setBusAfternoon(false);
         }
     };
-
 
     const submit = async () => {
         if (!childId) {
