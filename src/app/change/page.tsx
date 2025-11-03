@@ -3,7 +3,12 @@
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 
-type Child = { id: string; first_name: string };
+type Child = {
+    id: string;
+    first_name: string;
+    default_in: string;
+    default_out: string;
+};
 
 export default function ChangePage() {
     const [children, setChildren] = useState<Child[]>([]);
@@ -15,16 +20,28 @@ export default function ChangePage() {
     const [saving, setSaving] = useState(false);
     const [ok, setOk] = useState<string>('');
 
-    // cargar alumn@s para el desplegable
+    // cargar alumn@s para el desplegable (now includes default times)
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
                 .from('children')
-                .select('id, first_name')
+                .select('id, first_name, default_in, default_out')
                 .order('first_name');
             if (!error) setChildren(data ?? []);
         })();
     }, []);
+
+    const handleSelectChild = (id: string) => {
+        setChildId(id);
+        const selected = children.find((c) => c.id === id);
+        if (selected) {
+            setNewIn(selected.default_in || '');
+            setNewOut(selected.default_out || '');
+        } else {
+            setNewIn('');
+            setNewOut('');
+        }
+    };
 
     const submit = async () => {
         if (!childId || (!newIn && !newOut)) {
@@ -70,7 +87,7 @@ export default function ChangePage() {
                 <select
                     className="border border-[var(--color-border)] rounded-xl px-3 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     value={childId}
-                    onChange={(e) => setChildId(e.target.value)}
+                    onChange={(e) => handleSelectChild(e.target.value)}
                 >
                     <option value="">Elige alumn@…</option>
                     {children.map((c) => (
@@ -92,11 +109,12 @@ export default function ChangePage() {
                 </label>
 
                 {/* Horas */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                     <label className="text-sm font-medium text-gray-700">
                         Nueva entrada
                         <input
                             type="time"
+                            step="300"
                             className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                             value={newIn}
                             onChange={(e) => setNewIn(e.target.value)}
@@ -106,6 +124,7 @@ export default function ChangePage() {
                         Nueva salida
                         <input
                             type="time"
+                            step="300"
                             className="mt-1 border border-[var(--color-border)] rounded-xl px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                             value={newOut}
                             onChange={(e) => setNewOut(e.target.value)}
@@ -128,7 +147,7 @@ export default function ChangePage() {
                 <button
                     onClick={submit}
                     disabled={saving}
-                    className="w-full px-5 py-2 rounded-xl bg-[var(--color-primary)] text-white font-medium shadow-sm hover:bg-[var(--color-primary-dark)] transition-all disabled:opacity-50"
+                    className="w-full px-5 py-3 rounded-xl bg-[var(--color-primary)] text-white font-medium shadow-sm hover:bg-[var(--color-primary-dark)] transition-all disabled:opacity-50"
                 >
                     {saving ? 'Guardando…' : 'Guardar'}
                 </button>
