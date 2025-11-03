@@ -1,7 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Child = {
     id: string;
@@ -10,36 +10,17 @@ type Child = {
     default_out: string;
 };
 
-function splitTime(t?: string | null) {
-    if (!t) return { h: '', m: '' };
-    // Accept "HH:MM" or "HH:MM:SS"
-    const [h, m] = t.slice(0, 5).split(':');
-    return { h: h ?? '', m: m ?? '' };
-}
-
 export default function ChangePage() {
     const [children, setChildren] = useState<Child[]>([]);
     const [childId, setChildId] = useState('');
     const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+    const [newIn, setNewIn] = useState<string>('');
+    const [newOut, setNewOut] = useState<string>('');
     const [note, setNote] = useState<string>('');
     const [saving, setSaving] = useState(false);
     const [ok, setOk] = useState<string>('');
 
-    // Hour/min selects (we store hours and minutes separately to enforce 5-min steps)
-    const [inHour, setInHour] = useState(''); const [inMin, setInMin] = useState('');
-    const [outHour, setOutHour] = useState(''); const [outMin, setOutMin] = useState('');
-
-    // Options for selects
-    const hours = useMemo(
-        () => Array.from({ length: 15 }, (_, i) => String(i + 7).padStart(2, '0')), // 07..21
-        [],
-    );
-    const minutes = useMemo(
-        () => ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'],
-        [],
-    );
-
-    // Load children (with defaults)
+    // cargar alumn@s para el desplegable (con horarios por defecto)
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -50,33 +31,25 @@ export default function ChangePage() {
         })();
     }, []);
 
-    // When a child is chosen, fill selects with their defaults
     const handleSelectChild = (id: string) => {
         setChildId(id);
         const selected = children.find((c) => c.id === id);
         if (selected) {
-            const i = splitTime(selected.default_in);
-            const o = splitTime(selected.default_out);
-            setInHour(i.h); setInMin(i.m);
-            setOutHour(o.h); setOutMin(o.m);
+            setNewIn(selected.default_in || '');
+            setNewOut(selected.default_out || '');
         } else {
-            setInHour(''); setInMin('');
-            setOutHour(''); setOutMin('');
+            setNewIn('');
+            setNewOut('');
         }
     };
 
-    const composeTime = (h: string, m: string) => (h && m ? `${h}:${m}` : '');
-
     const submit = async () => {
-        const newIn = composeTime(inHour, inMin);
-        const newOut = composeTime(outHour, outMin);
-
         if (!childId || (!newIn && !newOut)) {
             alert('Elige un/a alumn@ y al menos una hora nueva.');
             return;
         }
-
         setSaving(true);
+
         const { data: userRes } = await supabase.auth.getUser();
         const userId = userRes?.user?.id;
 
@@ -90,13 +63,15 @@ export default function ChangePage() {
         });
 
         setSaving(false);
+
         if (error) {
             alert(error.message);
             return;
         }
 
         setOk('Guardado ✓');
-        // leave selects as-is (often teachers add several changes)
+        setNewIn('');
+        setNewOut('');
         setNote('');
         setTimeout(() => setOk(''), 1500);
     };
@@ -108,7 +83,7 @@ export default function ChangePage() {
                     Registrar cambio de horario
                 </h1>
 
-                {/* Alumn@ */}
+                {/* Selector de alumn@ */}
                 <select
                     className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     value={childId}
@@ -134,73 +109,44 @@ export default function ChangePage() {
                     />
                 </label>
 
-                {/* Horas (custom selects to enforce 5-min steps across iOS/Android) */}
+                {/* Horas */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div>
-                        <div className="text-sm font-medium text-gray-700 mb-1">Nueva entrada</div>
-                        <div className="flex gap-2">
-                            <select
-                                value={inHour}
-                                onChange={(e) => setInHour(e.target.value)}
-                                className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white w-24 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                            >
-                                <option value="">HH</option>
-                                {hours.map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={inMin}
-                                onChange={(e) => setInMin(e.target.value)}
-                                className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white w-24 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                            >
-                                <option value="">MM</option>
-                                {minutes.map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="text-sm font-medium text-gray-700 mb-1">Nueva salida</div>
-                        <div className="flex gap-2">
-                            <select
-                                value={outHour}
-                                onChange={(e) => setOutHour(e.target.value)}
-                                className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white w-24 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                            >
-                                <option value="">HH</option>
-                                {hours.map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={outMin}
-                                onChange={(e) => setOutMin(e.target.value)}
-                                className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white w-24 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                            >
-                                <option value="">MM</option>
-                                {minutes.map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                    <label className="text-sm font-medium text-gray-700">
+                        Nueva entrada
+                        <input
+                            type="time"
+                            inputMode="numeric"
+                            step={300}
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-3 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all [appearance:none]"
+                            value={newIn}
+                            onChange={(e) => setNewIn(e.target.value)}
+                        />
+                    </label>
+                    <label className="text-sm font-medium text-gray-700">
+                        Nueva salida
+                        <input
+                            type="time"
+                            inputMode="numeric"
+                            step={300}
+                            className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-3 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all [appearance:none]"
+                            value={newOut}
+                            onChange={(e) => setNewOut(e.target.value)}
+                        />
+                    </label>
                 </div>
 
                 {/* Nota */}
                 <label className="block text-sm mb-4 font-medium text-gray-700">
                     Nota
                     <input
-                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                        className="mt-1 border border-[var(--color-border)] rounded-xl px-4 py-3 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all [appearance:none]"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder="Opcional"
                     />
                 </label>
 
-                {/* Guardar */}
+                {/* Botón Guardar */}
                 <button
                     onClick={submit}
                     disabled={saving}
