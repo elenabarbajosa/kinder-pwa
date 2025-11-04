@@ -30,6 +30,7 @@ export default function Today() {
     const [filterBusMorning, setFilterBusMorning] = useState(false);
     const [filterBusAfternoon, setFilterBusAfternoon] = useState(false);
     const [filterAbsent, setFilterAbsent] = useState(false);
+    const [filterNotes, setFilterNotes] = useState(false);
 
     // load today_view
     const loadToday = async () => {
@@ -69,7 +70,9 @@ export default function Today() {
         .filter((r) => !changedOnly || r.exception_id)
         .filter((r) => !filterBusMorning || r.bus_morning_today)
         .filter((r) => !filterBusAfternoon || r.bus_afternoon_today)
-        .filter((r) => !filterAbsent || r.absent);
+        .filter((r) => !filterAbsent || r.absent)
+        .filter((r) => !filterNotes || r.note); // 🟨 show only students with notes
+
 
     // summary counts
     const total = visible.length;
@@ -82,6 +85,11 @@ export default function Today() {
     const timeChangeCount = visible.filter((r) => r.exception_id && !r.absent).length;
 
     const cardColor = (r: Row) => {
+        // 🟨 0️⃣ Note override (always yellow)
+        if (r.note)
+            return 'bg-[var(--color-note)] border-[var(--color-note-border)]';
+
+        // 💜 1️⃣ Absent
         if (r.absent)
             return 'bg-[var(--color-absent)] border-[var(--color-absent-border)]';
 
@@ -91,12 +99,19 @@ export default function Today() {
         const timeChanged =
             r.exception_id && (r.in_time !== r.default_in || r.out_time !== r.default_out);
 
+        // 💙 2️⃣ Both bus & time change
         if (busChanged && timeChanged)
             return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
+
+        // 💗 3️⃣ Time change only
         if (timeChanged)
             return 'bg-[var(--color-time-change)] border-[var(--color-time-border)]';
+
+        // 💙 4️⃣ Bus change only
         if (busChanged)
             return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
+
+        // ⚪ 5️⃣ Default
         return 'bg-[var(--color-card-bg)] border-[var(--color-card-border)]';
     };
 
@@ -123,7 +138,9 @@ export default function Today() {
 
     return (
         <main className="p-4 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Hoy</h1>
+            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">
+                Hoy
+            </h1>
 
             {/* Filters */}
             <div className="flex flex-wrap gap-2 mb-6 items-center">
@@ -181,11 +198,26 @@ export default function Today() {
                     />
                     Ausente
                 </label>
+
+                {/* 🟨 New “Notas” filter */}
+                <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={filterNotes}
+                        onChange={(e) => setFilterNotes(e.target.checked)}
+                        className="accent-yellow-400"
+                    />
+                    Notas
+                </label>
             </div>
+
+
 
             {/* Summary bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-2xl p-3 mb-4 shadow-sm text-sm text-gray-700 flex flex-wrap justify-between">
-                <span>Total: <strong>{total}</strong></span>
+                <span>
+                    Total: <strong>{total}</strong>
+                </span>
                 <span className="text-[var(--color-primary-dark)]">
                     Cambios: <strong>{timeChangeCount}</strong>
                 </span>
@@ -198,14 +230,11 @@ export default function Today() {
             </div>
 
             {/* Student cards */}
-            <div className="grid gap-3">
+            <div className="grid gap-4">
                 {visible
                     .sort((a, b) => {
-                        // 1️⃣ Changed students (exception_id) first
                         if (a.exception_id && !b.exception_id) return -1;
                         if (!a.exception_id && b.exception_id) return 1;
-
-                        // 2️⃣ Then sort by time
                         return a.in_time.localeCompare(b.in_time);
                     })
                     .map((r) => (
@@ -245,14 +274,12 @@ function SwipeCard({
 }) {
     return (
         <div className="relative">
-            {/* ❌ background under card */}
             <div className="absolute inset-0 flex items-center justify-end pr-6 z-0">
                 <span className="text-red-600 text-3xl select-none">❌</span>
             </div>
 
-            {/* draggable foreground card */}
             <motion.div
-                className={`relative z-10 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 card-transition overflow-hidden ${cardColor(
+                className={`relative z-10 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${cardColor(
                     r
                 )}`}
                 drag="x"
@@ -260,16 +287,18 @@ function SwipeCard({
                 dragElastic={0.2}
                 onDragEnd={(event, info) => {
                     if (info.offset.x < -80 && r.exception_id) {
-                        if (confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)) {
+                        if (
+                            confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)
+                        ) {
                             handleRevert(r.exception_id, r.first_name);
                         }
                     }
                 }}
             >
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                     <div>
                         <div
-                            className={`text-lg font-semibold ${r.absent
+                            className={`text-base font-semibold mb-2 ${r.absent
                                 ? 'text-[var(--color-text-purple)]'
                                 : r.bus_morning_today !== r.takes_bus_morning ||
                                     r.bus_afternoon_today !== r.takes_bus_afternoon
@@ -279,15 +308,19 @@ function SwipeCard({
                         >
                             {r.first_name}
                         </div>
+
                         {busBadge(r) && (
-                            <div className="text-sm text-black-900 mt-1 px-2 py-1 rounded-md bg-gray-100 inline-block shadow-sm">
+                            <div className="text-sm font-semibold text-gray-900 mt-1 px-2 py-1 rounded-md bg-gray-100 inline-block shadow-sm">
                                 {busBadge(r)}
                             </div>
                         )}
-                        {r.note && <div className="text-sm text-gray-600 mt-1">{r.note}</div>}
+
+                        {r.note && (
+                            <div className="text-sm text-gray-700 mt-2 italic">{r.note}</div>
+                        )}
                     </div>
 
-                    <div className="text-right text-sm text-gray-700">
+                    <div className="text-right text-[13px] text-gray-700 leading-relaxed mt-1">
                         <div>
                             Entrada: <span className="font-medium">{r.in_time}</span>
                         </div>
