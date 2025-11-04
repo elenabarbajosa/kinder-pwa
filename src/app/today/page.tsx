@@ -4,6 +4,13 @@ import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
+// 🕒 Format times like "08:00:00" → "08:00"
+function formatTime(time: string) {
+    if (!time) return '';
+    return time.slice(0, 5); // keeps only HH:MM
+}
+
+
 type Classroom = { id: string; name: string };
 type Row = {
     child_id: string;
@@ -97,7 +104,9 @@ export default function Today() {
         const afternoonChanged = r.bus_afternoon_today !== r.takes_bus_afternoon;
         const busChanged = morningChanged || afternoonChanged;
         const timeChanged =
-            r.exception_id && (r.in_time !== r.default_in || r.out_time !== r.default_out);
+            r.exception_id &&
+            (formatTime(r.in_time) !== formatTime(r.default_in) ||
+                formatTime(r.out_time) !== formatTime(r.default_out));
 
         // 💙 2️⃣ Both bus & time change
         if (busChanged && timeChanged)
@@ -322,10 +331,10 @@ function SwipeCard({
 
                     <div className="text-right text-[13px] text-gray-700 leading-relaxed mt-1">
                         <div>
-                            Entrada: <span className="font-medium">{r.in_time}</span>
+                            Entrada: <span className="font-medium">{formatTime(r.in_time)}</span>
                         </div>
                         <div>
-                            Salida: <span className="font-medium">{r.out_time}</span>
+                            Salida: <span className="font-medium">{formatTime(r.out_time)}</span>
                         </div>
 
                         {r.exception_id &&
