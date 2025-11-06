@@ -242,10 +242,14 @@ export default function Today() {
             <div className="grid gap-4">
                 {visible
                     .sort((a, b) => {
+                        // 1️⃣ Changed students first (those with exception_id)
                         if (a.exception_id && !b.exception_id) return -1;
                         if (!a.exception_id && b.exception_id) return 1;
-                        return a.in_time.localeCompare(b.in_time);
+
+                        // 2️⃣ Then sort alphabetically by student name
+                        return a.first_name.localeCompare(b.first_name, 'es', { sensitivity: 'base' });
                     })
+
                     .map((r) => (
                         <SwipeCard
                             key={r.child_id}
