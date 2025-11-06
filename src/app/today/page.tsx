@@ -10,7 +10,6 @@ function formatTime(time: string) {
     return time.slice(0, 5); // keeps only HH:MM
 }
 
-
 type Classroom = { id: string; name: string };
 type Row = {
     child_id: string;
@@ -39,13 +38,12 @@ export default function Today() {
     const [filterAbsent, setFilterAbsent] = useState(false);
     const [filterNotes, setFilterNotes] = useState(false);
 
-    // load today_view
+    // Load data
     const loadToday = async () => {
         const { data, error } = await supabase.from('today_view').select('*');
         if (!error) setRows((data as Row[]) ?? []);
     };
 
-    // load classrooms and today data
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -57,7 +55,7 @@ export default function Today() {
         loadToday();
     }, []);
 
-    // ❌ revert change (delete exception)
+    // ❌ Revert change (delete exception)
     const handleRevert = async (exceptionId: string | null, childName: string) => {
         if (!exceptionId) return alert('Este alumn@ no tiene cambio para revertir.');
         if (!confirm(`¿Seguro que quieres eliminar el cambio de ${childName}?`)) return;
@@ -67,21 +65,19 @@ export default function Today() {
             alert('Error al revertir el cambio: ' + error.message);
             return;
         }
-
         await loadToday();
     };
 
-    // filters
+    // Filters
     const visible = rows
         .filter((r) => selectedClass === 'all' || r.classroom_id === selectedClass)
         .filter((r) => !changedOnly || r.exception_id)
         .filter((r) => !filterBusMorning || r.bus_morning_today)
         .filter((r) => !filterBusAfternoon || r.bus_afternoon_today)
         .filter((r) => !filterAbsent || r.absent)
-        .filter((r) => !filterNotes || r.note); // 🟨 show only students with notes
+        .filter((r) => !filterNotes || r.note); // 🟨 Only students with notes
 
-
-    // summary counts
+    // Summary
     const total = visible.length;
     const absentCount = visible.filter((r) => r.absent).length;
     const busChangeCount = visible.filter(
@@ -91,10 +87,11 @@ export default function Today() {
     ).length;
     const timeChangeCount = visible.filter((r) => r.exception_id && !r.absent).length;
 
+    // 🟨 Card color logic
     const cardColor = (r: Row) => {
         // 🟨 0️⃣ Note override (always yellow)
         if (r.note)
-            return 'bg-[var(--color-note)] border-[var(--color-note-border)]';
+            return 'bg-[var(--color-note)] border-[var(--color-note-border)] text-[var(--color-note-text)]';
 
         // 💜 1️⃣ Absent
         if (r.absent)
@@ -124,6 +121,7 @@ export default function Today() {
         return 'bg-[var(--color-card-bg)] border-[var(--color-card-border)]';
     };
 
+    // Time difference label
     const badge = (r: Row) => {
         if (!r.exception_id) return '';
         const diffs: string[] = [];
@@ -134,6 +132,7 @@ export default function Today() {
         return diffs.join(' • ');
     };
 
+    // Bus info
     const busBadge = (r: Row) => {
         if (r.absent) return '';
         if (r.bus_morning_today || r.bus_afternoon_today) {
@@ -177,6 +176,7 @@ export default function Today() {
                 </label>
             </div>
 
+            {/* Filter bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm flex flex-wrap gap-3 text-sm mt-2 mb-4">
                 <label className="flex items-center gap-2">
                     <input
@@ -208,7 +208,6 @@ export default function Today() {
                     Ausente
                 </label>
 
-                {/* 🟨 New “Notas” filter */}
                 <label className="flex items-center gap-2">
                     <input
                         type="checkbox"
@@ -219,8 +218,6 @@ export default function Today() {
                     Notas
                 </label>
             </div>
-
-
 
             {/* Summary bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-2xl p-3 mb-4 shadow-sm text-sm text-gray-700 flex flex-wrap justify-between">
@@ -242,14 +239,10 @@ export default function Today() {
             <div className="grid gap-4">
                 {visible
                     .sort((a, b) => {
-                        // 1️⃣ Changed students first (those with exception_id)
                         if (a.exception_id && !b.exception_id) return -1;
                         if (!a.exception_id && b.exception_id) return 1;
-
-                        // 2️⃣ Then sort alphabetically by student name
                         return a.first_name.localeCompare(b.first_name, 'es', { sensitivity: 'base' });
                     })
-
                     .map((r) => (
                         <SwipeCard
                             key={r.child_id}
@@ -300,9 +293,7 @@ function SwipeCard({
                 dragElastic={0.2}
                 onDragEnd={(event, info) => {
                     if (info.offset.x < -80 && r.exception_id) {
-                        if (
-                            confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)
-                        ) {
+                        if (confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)) {
                             handleRevert(r.exception_id, r.first_name);
                         }
                     }
@@ -311,12 +302,14 @@ function SwipeCard({
                 <div className="flex justify-between items-start">
                     <div>
                         <div
-                            className={`text-base font-semibold mb-2 ${r.absent
-                                ? 'text-[var(--color-text-purple)]'
-                                : r.bus_morning_today !== r.takes_bus_morning ||
-                                    r.bus_afternoon_today !== r.takes_bus_afternoon
-                                    ? 'text-[var(--color-text-blue)]'
-                                    : 'text-[var(--color-primary-dark)]'
+                            className={`text-base font-semibold mb-2 ${r.note
+                                ? 'text-[var(--color-note-text)]' // 🟨 override for yellow cards
+                                : r.absent
+                                    ? 'text-[var(--color-text-purple)]'
+                                    : r.bus_morning_today !== r.takes_bus_morning ||
+                                        r.bus_afternoon_today !== r.takes_bus_afternoon
+                                        ? 'text-[var(--color-text-blue)]'
+                                        : 'text-[var(--color-primary-dark)]'
                                 }`}
                         >
                             {r.first_name}
@@ -329,7 +322,9 @@ function SwipeCard({
                         )}
 
                         {r.note && (
-                            <div className="text-sm text-gray-700 mt-2 italic">{r.note}</div>
+                            <div className="text-sm mt-2 italic text-[var(--color-note-text)]">
+                                {r.note}
+                            </div>
                         )}
                     </div>
 
