@@ -1,77 +1,172 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { es as t } from '@/strings';
 
-export default function Home() {
-  const [session, setSession] = useState<any>(null);
+// 🕒 Format times like "08:00:00" → "08:00"
+function formatTime(time: string) {
+  if (!time) return '';
+  return time.slice(0, 5);
+}
+
+type Row = {
+  child_id: string;
+  first_name: string;
+  classroom_id: string;
+  default_in: string;
+  default_out: string;
+  exception_id: string | null;
+  in_time: string;
+  out_time: string;
+  note: string | null;
+  takes_bus_morning: boolean;
+  takes_bus_afternoon: boolean;
+  bus_morning_today: boolean;
+  bus_afternoon_today: boolean;
+  absent: boolean;
+  date?: string;
+};
+
+export default function CalendarPage() {
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 🔹 Load data for a specific date
+  const loadByDate = async (date: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('attendance_view')
+      .select('*')
+      .eq('date', selectedDate)
+      .order('first_name', { ascending: true });
+    if (!error) setRows((data as Row[]) ?? []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => subscription.unsubscribe();
-  }, []);
+    loadByDate(selectedDate);
+  }, [selectedDate]);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    window.location.reload();
-  }
+  // 🔹 Card color logic (same as Hoy)
+  const cardColor = (r: Row) => {
+    if (r.note)
+      return 'bg-[var(--color-note)] border-[var(--color-note-border)] text-[var(--color-note-text)]';
+    if (r.absent)
+      return 'bg-[var(--color-absent)] border-[var(--color-absent-border)]';
+    const morningChanged = r.bus_morning_today !== r.takes_bus_morning;
+    const afternoonChanged = r.bus_afternoon_today !== r.takes_bus_afternoon;
+    const busChanged = morningChanged || afternoonChanged;
+    const timeChanged =
+      r.exception_id &&
+      (formatTime(r.in_time) !== formatTime(r.default_in) ||
+        formatTime(r.out_time) !== formatTime(r.default_out));
 
-  if (!session) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)]">
-        <div className="w-full max-w-md bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-md border border-[var(--color-border)]">
-          <h1 className="text-2xl font-semibold mb-4 text-[var(--color-primary-dark)]">
-            {t.signIn}
-          </h1>
-          <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} providers={[]} />
-          <p className="text-sm mt-4 text-gray-600">{t.useEmailMsg}</p>
-        </div>
-      </main>
-    );
-  }
+    if (busChanged && timeChanged)
+      return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
+    if (timeChanged)
+      return 'bg-[var(--color-time-change)] border-[var(--color-time-border)]';
+    if (busChanged)
+      return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
+    return 'bg-[var(--color-card-bg)] border-[var(--color-card-border)]';
+  };
+
+  const busBadge = (r: Row) => {
+    if (r.absent) return '';
+    if (r.bus_morning_today || r.bus_afternoon_today) {
+      const parts = [];
+      if (r.bus_morning_today) parts.push('Mañana');
+      if (r.bus_afternoon_today) parts.push('Tarde');
+      return `🚌 ${parts.join(' & ')}`;
+    }
+    return '';
+  };
 
   return (
-    <main className="min-h-screen p-6 space-y-6 bg-[var(--color-bg)]">
-      <h1 className="text-3xl font-semibold text-[var(--color-primary-dark)]">
-        {t.appTitle}
+    <main className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">
+        Buscar horario por fecha
       </h1>
 
-      <div className="flex flex-wrap gap-3">
-        {/* Primary pink button */}
-        <Link
-          href="/today"
-          className="px-5 py-2 rounded-xl bg-[var(--color-primary)] text-white font-medium shadow-sm hover:bg-[var(--color-primary-dark)] transition-all"
-        >
-          {t.today}
-        </Link>
-
-        {/* Outline buttons */}
-        <Link
-          href="/change"
-          className="px-5 py-2 rounded-xl border border-[var(--color-border)] bg-white hover:bg-[var(--color-primary)] hover:text-white transition-all"
-        >
-          {t.addChange}
-        </Link>
-
-        <Link
-          href="/children"
-          className="px-5 py-2 rounded-xl border border-[var(--color-border)] bg-white hover:bg-[var(--color-primary)] hover:text-white transition-all"
-        >
-          {t.children}
-        </Link>
-
-        <button
-          onClick={signOut}
-          className="px-5 py-2 rounded-xl border border-[var(--color-border)] bg-white hover:bg-[var(--color-primary)] hover:text-white transition-all"
-        >
-          {t.signOut}
-        </button>
+      {/* 📅 Date picker */}
+      <div className="bg-white border border-[var(--color-border)] rounded-xl px-4 py-4 shadow-sm mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <label className="text-sm font-medium text-gray-700">
+          Selecciona una fecha:
+        </label>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="border border-[var(--color-border)] rounded-xl px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+        />
       </div>
+
+      {/* 🧾 Results */}
+      {loading ? (
+        <p className="text-center text-gray-500">Cargando datos...</p>
+      ) : rows.length > 0 ? (
+        <div className="grid gap-4">
+          {rows.map((r) => (
+            <div
+              key={r.child_id}
+              className={`rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 ${cardColor(
+                r
+              )}`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div
+                    className={`text-base font-semibold mb-2 ${r.note
+                      ? 'text-[var(--color-note-text)]'
+                      : r.absent
+                        ? 'text-[var(--color-text-purple)]'
+                        : r.bus_morning_today !== r.takes_bus_morning ||
+                          r.bus_afternoon_today !== r.takes_bus_afternoon
+                          ? 'text-[var(--color-text-blue)]'
+                          : 'text-[var(--color-primary-dark)]'
+                      }`}
+                  >
+                    {r.first_name}
+                  </div>
+
+                  {busBadge(r) && (
+                    <div className="text-sm font-semibold text-gray-900 mt-1 px-2 py-1 rounded-md bg-gray-100 inline-block shadow-sm">
+                      {busBadge(r)}
+                    </div>
+                  )}
+
+                  {r.note && (
+                    <div className="text-sm mt-2 italic text-[var(--color-note-text)]">
+                      {r.note}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-right text-[13px] text-gray-700 leading-relaxed mt-1">
+                  <div>
+                    Entrada:{' '}
+                    <span className="font-medium">
+                      {formatTime(r.in_time)}
+                    </span>
+                  </div>
+                  <div>
+                    Salida:{' '}
+                    <span className="font-medium">
+                      {formatTime(r.out_time)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-500">
+          No hay cambios registrados para esta fecha.
+        </p>
+      )}
     </main>
   );
 }
