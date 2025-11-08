@@ -16,15 +16,45 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-      </head>
 
-      <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
-      <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
-      <link rel="shortcut icon" href="/favicon/favicon.ico" />
-      <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
-      <meta name="apple-mobile-web-app-title" content="La Cometa Horarios" />
-      <link rel="manifest" href="/favicon/site.webmanifest" />
-      <meta name="theme-color" content="#ff6fa8" />
+
+        <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="La Cometa Horarios" />
+        <link rel="manifest" href="/favicon/site.webmanifest" />
+        <meta name="theme-color" content="#ff6fa8" />
+
+
+        {/* iOS App Icons */}
+        <link rel="apple-touch-icon" sizes="57x57" href="/favicon/AppImages/ios/57.png" />
+        <link rel="apple-touch-icon" sizes="60x60" href="/favicon/AppImages/ios/60.png" />
+        <link rel="apple-touch-icon" sizes="72x72" href="/favicon/AppImages/ios/72.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/favicon/AppImages/ios/76.png" />
+        <link rel="apple-touch-icon" sizes="114x114" href="/favicon/AppImages/ios/114.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/favicon/AppImages/ios/120.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/favicon/AppImages/ios/144.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/favicon/AppImages/ios/152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon/AppImages/ios/180.png" />
+
+        {/* Android App Icons */}
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon/AppImages/android/android-launchericon-48-48.png" />
+        <link rel="icon" type="image/png" sizes="72x72" href="/favicon/AppImages/android/android-launchericon-72-72.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon/AppImages/android/android-launchericon-96-96.png" />
+        <link rel="icon" type="image/png" sizes="144x144" href="/favicon/AppImages/android/android-launchericon-144-144.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/favicon/AppImages/android/android-launchericon-192-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/favicon/AppImages/android/android-launchericon-512-512.png" />
+
+        {/* iOS Splash Screens */}
+        <link rel="apple-touch-startup-image" href="/favicon/AppImages/ios/180.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+        <link rel="apple-touch-startup-image" href="/favicon/AppImages/ios/152.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" />
+        <link rel="apple-touch-startup-image" href="/favicon/AppImages/ios/120.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+
+
+
+
+      </head>
 
 
       <body className="min-h-screen bg-white text-black">
