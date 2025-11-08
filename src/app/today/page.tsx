@@ -1,13 +1,13 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { motion, useMotionValue, animate } from 'framer-motion';
 
 // 🕒 Format times like "08:00:00" → "08:00"
 function formatTime(time: string) {
     if (!time) return '';
-    return time.slice(0, 5); // keeps only HH:MM
+    return time.slice(0, 5);
 }
 
 type Classroom = { id: string; name: string };
@@ -58,11 +58,9 @@ export default function Today() {
     // ❌ Revert change (delete exception)
     const handleRevert = async (exceptionId: string | null, childName: string) => {
         if (!exceptionId) return alert('Este alumn@ no tiene cambio para revertir.');
-        if (!confirm(`¿Seguro que quieres eliminar el cambio de ${childName}?`)) return;
-
         const { error } = await supabase.from('exceptions').delete().eq('id', exceptionId);
         if (error) {
-            alert('Error al revertir el cambio: ' + error.message);
+            alert('Error al eliminar el cambio: ' + error.message);
             return;
         }
         await loadToday();
@@ -75,7 +73,7 @@ export default function Today() {
         .filter((r) => !filterBusMorning || r.bus_morning_today)
         .filter((r) => !filterBusAfternoon || r.bus_afternoon_today)
         .filter((r) => !filterAbsent || r.absent)
-        .filter((r) => !filterNotes || r.note); // 🟨 Only students with notes
+        .filter((r) => !filterNotes || r.note);
 
     // Summary
     const total = visible.length;
@@ -89,14 +87,10 @@ export default function Today() {
 
     // 🟨 Card color logic
     const cardColor = (r: Row) => {
-        // 🟨 0️⃣ Note override (always yellow)
         if (r.note)
             return 'bg-[var(--color-note)] border-[var(--color-note-border)] text-[var(--color-note-text)]';
-
-        // 💜 1️⃣ Absent
         if (r.absent)
             return 'bg-[var(--color-absent)] border-[var(--color-absent-border)]';
-
         const morningChanged = r.bus_morning_today !== r.takes_bus_morning;
         const afternoonChanged = r.bus_afternoon_today !== r.takes_bus_afternoon;
         const busChanged = morningChanged || afternoonChanged;
@@ -105,23 +99,15 @@ export default function Today() {
             (formatTime(r.in_time) !== formatTime(r.default_in) ||
                 formatTime(r.out_time) !== formatTime(r.default_out));
 
-        // 💙 2️⃣ Both bus & time change
         if (busChanged && timeChanged)
             return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
-
-        // 💗 3️⃣ Time change only
         if (timeChanged)
             return 'bg-[var(--color-time-change)] border-[var(--color-time-border)]';
-
-        // 💙 4️⃣ Bus change only
         if (busChanged)
             return 'bg-[var(--color-bus-change)] border-[var(--color-bus-border)]';
-
-        // ⚪ 5️⃣ Default
         return 'bg-[var(--color-card-bg)] border-[var(--color-card-border)]';
     };
 
-    // Time difference label
     const badge = (r: Row) => {
         if (!r.exception_id) return '';
         const diffs: string[] = [];
@@ -132,7 +118,6 @@ export default function Today() {
         return diffs.join(' • ');
     };
 
-    // Bus info
     const busBadge = (r: Row) => {
         if (r.absent) return '';
         if (r.bus_morning_today || r.bus_afternoon_today) {
@@ -221,9 +206,7 @@ export default function Today() {
 
             {/* Summary bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-2xl p-3 mb-4 shadow-sm text-sm text-gray-700 flex flex-wrap justify-between">
-                <span>
-                    Total: <strong>{total}</strong>
-                </span>
+                <span>Total: <strong>{total}</strong></span>
                 <span className="text-[var(--color-primary-dark)]">
                     Cambios: <strong>{timeChangeCount}</strong>
                 </span>
@@ -244,7 +227,7 @@ export default function Today() {
                         return a.first_name.localeCompare(b.first_name, 'es', { sensitivity: 'base' });
                     })
                     .map((r) => (
-                        <SwipeCard
+                        <SmoothSwipeCard
                             key={r.child_id}
                             row={r}
                             cardColor={cardColor}
@@ -264,8 +247,8 @@ export default function Today() {
     );
 }
 
-/* 🧩 Subcomponent for swipe-to-delete */
-function SwipeCard({
+/* 🧩 Subcomponent with smoother swipe + confirm once */
+function SmoothSwipeCard({
     row: r,
     cardColor,
     badge,
@@ -278,8 +261,16 @@ function SwipeCard({
     busBadge: (r: Row) => string;
     handleRevert: (id: string | null, name: string) => void;
 }) {
+    const x = useMotionValue(0);
+    const deletingRef = useRef(false);
+
+    const resetPosition = () => {
+        animate(x, 0, { type: 'spring', stiffness: 300, damping: 25 });
+    };
+
     return (
         <div className="relative">
+            {/* ❌ red background under card */}
             <div className="absolute inset-0 flex items-center justify-end pr-6 z-0">
                 <span className="text-red-600 text-3xl select-none">❌</span>
             </div>
@@ -288,14 +279,30 @@ function SwipeCard({
                 className={`relative z-10 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${cardColor(
                     r
                 )}`}
+                style={{ x }}
                 drag="x"
                 dragConstraints={{ left: -100, right: 0 }}
-                dragElastic={0.2}
+                dragElastic={0.15}
+                dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
                 onDragEnd={(event, info) => {
+                    if (deletingRef.current) return;
+
                     if (info.offset.x < -80 && r.exception_id) {
-                        if (confirm(`¿Seguro que quieres eliminar el cambio de ${r.first_name}?`)) {
-                            handleRevert(r.exception_id, r.first_name);
-                        }
+                        deletingRef.current = true;
+
+                        const confirmed = window.confirm(
+                            `¿Seguro que quieres eliminar el cambio de ${r.first_name}?`
+                        );
+
+                        if (confirmed) handleRevert(r.exception_id, r.first_name);
+
+                        resetPosition();
+
+                        setTimeout(() => {
+                            deletingRef.current = false;
+                        }, 600);
+                    } else {
+                        resetPosition();
                     }
                 }}
             >
@@ -303,13 +310,13 @@ function SwipeCard({
                     <div>
                         <div
                             className={`text-base font-semibold mb-2 ${r.note
-                                ? 'text-[var(--color-note-text)]' // 🟨 override for yellow cards
-                                : r.absent
-                                    ? 'text-[var(--color-text-purple)]'
-                                    : r.bus_morning_today !== r.takes_bus_morning ||
-                                        r.bus_afternoon_today !== r.takes_bus_afternoon
-                                        ? 'text-[var(--color-text-blue)]'
-                                        : 'text-[var(--color-primary-dark)]'
+                                    ? 'text-[var(--color-note-text)]'
+                                    : r.absent
+                                        ? 'text-[var(--color-text-purple)]'
+                                        : r.bus_morning_today !== r.takes_bus_morning ||
+                                            r.bus_afternoon_today !== r.takes_bus_afternoon
+                                            ? 'text-[var(--color-text-blue)]'
+                                            : 'text-[var(--color-primary-dark)]'
                                 }`}
                         >
                             {r.first_name}
