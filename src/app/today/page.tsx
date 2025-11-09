@@ -1,7 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 
 function formatTime(time: string) {
@@ -27,6 +27,11 @@ type Row = {
     absent: boolean;
 };
 
+const isIOS =
+    typeof navigator !== 'undefined' &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(window as any).MSStream;
+
 export default function Today() {
     const [classes, setClasses] = useState<Classroom[]>([]);
     const [rows, setRows] = useState<Row[]>([]);
@@ -36,6 +41,8 @@ export default function Today() {
     const [filterBusAfternoon, setFilterBusAfternoon] = useState(false);
     const [filterAbsent, setFilterAbsent] = useState(false);
     const [filterNotes, setFilterNotes] = useState(false);
+
+    const [classPickerOpen, setClassPickerOpen] = useState(false);
 
     const loadToday = async () => {
         const { data, error } = await supabase.from('today_view').select('*');
@@ -123,23 +130,23 @@ export default function Today() {
         return '';
     };
 
+    const selectedClassName = useMemo(() => {
+        if (selectedClass === 'all') return 'Todas las clases';
+        return classes.find((c) => c.id === selectedClass)?.name ?? 'Clase';
+    }, [classes, selectedClass]);
+
     return (
         <main className="p-4 max-w-3xl mx-auto">
             <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Hoy</h1>
 
-            {/* ✅ Filters */}
+            {/* Filters */}
             <div className="flex flex-wrap gap-2 mb-6 items-center">
-                <div className="relative z-50 transform-none">
+                {!isIOS ? (
                     <select
                         value={selectedClass}
                         onChange={(e) => setSelectedClass(e.target.value as any)}
-                        className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all cursor-pointer touch-manipulation z-50"
-                        style={{
-                            WebkitTransform: 'none',
-                            WebkitAppearance: 'menulist-button',
-                            WebkitTouchCallout: 'default',
-                            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
-                        }}
+                        onInput={(e) => setSelectedClass((e.target as HTMLSelectElement).value as any)}
+                        className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     >
                         <option value="all">Todas las clases</option>
                         {classes.map((c) => (
@@ -148,7 +155,62 @@ export default function Today() {
                             </option>
                         ))}
                     </select>
-                </div>
+                ) : (
+                    <>
+                        <button
+                            type="button"
+                            className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm"
+                            onClick={() => setClassPickerOpen(true)}
+                        >
+                            {selectedClassName}
+                        </button>
+
+                        {classPickerOpen && (
+                            <div className="fixed inset-0 z-[1000]">
+                                <div
+                                    className="absolute inset-0 bg-black/40"
+                                    onClick={() => setClassPickerOpen(false)}
+                                />
+                                <div className="absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-white shadow-lg overflow-hidden">
+                                    <div className="p-4 border-b font-semibold text-[var(--color-primary-dark)]">
+                                        Elige clase
+                                    </div>
+                                    <div className="overflow-y-auto max-h-[50vh]">
+                                        <button
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                                            onClick={() => {
+                                                setSelectedClass('all');
+                                                setClassPickerOpen(false);
+                                            }}
+                                        >
+                                            Todas las clases
+                                        </button>
+                                        {classes.map((c) => (
+                                            <button
+                                                key={c.id}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                                                onClick={() => {
+                                                    setSelectedClass(c.id);
+                                                    setClassPickerOpen(false);
+                                                }}
+                                            >
+                                                {c.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="p-3">
+                                        <button
+                                            className="w-full border rounded-xl py-2"
+                                            onClick={() => setClassPickerOpen(false)}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 <label className="flex items-center gap-2 text-sm">
                     <input
@@ -160,7 +222,6 @@ export default function Today() {
                     Solo cambios
                 </label>
             </div>
-
 
             {/* Filter bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm flex flex-wrap gap-3 text-sm mt-2 mb-4">
@@ -221,7 +282,7 @@ export default function Today() {
                 </span>
             </div>
 
-            {/* Student cards */}
+            {/* Cards */}
             <div className="grid gap-4">
                 {visible
                     .sort((a, b) => {
@@ -311,13 +372,13 @@ function SmoothSwipeCard({
                     <div>
                         <div
                             className={`text-base font-semibold mb-2 ${r.note
-                                ? 'text-[var(--color-note-text)]'
-                                : r.absent
-                                    ? 'text-[var(--color-text-purple)]'
-                                    : r.bus_morning_today !== r.takes_bus_morning ||
-                                        r.bus_afternoon_today !== r.takes_bus_afternoon
-                                        ? 'text-[var(--color-text-blue)]'
-                                        : 'text-[var(--color-primary-dark)]'
+                                    ? 'text-[var(--color-note-text)]'
+                                    : r.absent
+                                        ? 'text-[var(--color-text-purple)]'
+                                        : r.bus_morning_today !== r.takes_bus_morning ||
+                                            r.bus_afternoon_today !== r.takes_bus_afternoon
+                                            ? 'text-[var(--color-text-blue)]'
+                                            : 'text-[var(--color-primary-dark)]'
                                 }`}
                         >
                             {r.first_name}

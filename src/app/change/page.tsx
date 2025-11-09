@@ -1,7 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Child = {
     id: string;
@@ -11,6 +11,11 @@ type Child = {
     takes_bus_morning: boolean;
     takes_bus_afternoon: boolean;
 };
+
+const isIOS =
+    typeof navigator !== 'undefined' &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !(window as any).MSStream;
 
 export default function ChangePage() {
     const [children, setChildren] = useState<Child[]>([]);
@@ -26,7 +31,9 @@ export default function ChangePage() {
     const [busAfternoon, setBusAfternoon] = useState(false);
     const [absent, setAbsent] = useState(false);
 
-    // Load students
+    // iOS modal state
+    const [pickerOpen, setPickerOpen] = useState(false);
+
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
@@ -39,14 +46,20 @@ export default function ChangePage() {
         })();
     }, []);
 
-    const handleSelectChild = (id: string) => {
+    // selected child object for convenience
+    const selectedChild = useMemo(
+        () => children.find((c) => c.id === childId) || null,
+        [children, childId]
+    );
+
+    const applySelectedChild = (id: string) => {
         setChildId(id);
-        const selected = children.find((c) => c.id === id);
-        if (selected) {
-            setNewIn(selected.default_in || '');
-            setNewOut(selected.default_out || '');
-            setBusMorning(!!selected.takes_bus_morning);
-            setBusAfternoon(!!selected.takes_bus_afternoon);
+        const c = children.find((x) => x.id === id);
+        if (c) {
+            setNewIn(c.default_in || '');
+            setNewOut(c.default_out || '');
+            setBusMorning(!!c.takes_bus_morning);
+            setBusAfternoon(!!c.takes_bus_afternoon);
         } else {
             setNewIn('');
             setNewOut('');
@@ -96,23 +109,18 @@ export default function ChangePage() {
 
     return (
         <main className="min-h-screen p-6 flex justify-center bg-[var(--color-bg)]">
-            <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)] overflow-visible">
+            <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)]">
                 <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)] text-center">
                     Registrar cambio de horario
                 </h1>
 
-                {/* ✅ iOS dropdown fix */}
-                <div className="relative mb-4 z-50 transform-none">
+                {/* Student picker */}
+                {!isIOS ? (
                     <select
                         value={childId}
-                        onChange={(e) => handleSelectChild(e.target.value)}
-                        className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all cursor-pointer touch-manipulation z-50"
-                        style={{
-                            WebkitTransform: 'none',
-                            WebkitAppearance: 'menulist-button',
-                            WebkitTouchCallout: 'default',
-                            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
-                        }}
+                        onChange={(e) => applySelectedChild(e.target.value)}
+                        onInput={(e) => applySelectedChild((e.target as HTMLSelectElement).value)}
+                        className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
                     >
                         <option value="">Elige alumn@…</option>
                         {children.map((c) => (
@@ -121,7 +129,55 @@ export default function ChangePage() {
                             </option>
                         ))}
                     </select>
-                </div>
+                ) : (
+                    <>
+                        <button
+                            type="button"
+                            className="w-full text-left border border-[var(--color-border)] rounded-xl px-4 py-2 mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                            onClick={() => setPickerOpen(true)}
+                        >
+                            {selectedChild ? selectedChild.first_name : 'Elige alumn@…'}
+                        </button>
+
+                        {pickerOpen && (
+                            <div className="fixed inset-0 z-[1000]">
+                                {/* backdrop */}
+                                <div
+                                    className="absolute inset-0 bg-black/40"
+                                    onClick={() => setPickerOpen(false)}
+                                />
+                                {/* sheet */}
+                                <div className="absolute inset-x-0 bottom-0 max-h-[70vh] rounded-t-2xl bg-white shadow-lg overflow-hidden">
+                                    <div className="p-4 border-b font-semibold text-[var(--color-primary-dark)]">
+                                        Elige alumn@
+                                    </div>
+                                    <div className="overflow-y-auto max-h-[60vh] divide-y">
+                                        {children.map((c) => (
+                                            <button
+                                                key={c.id}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                                                onClick={() => {
+                                                    applySelectedChild(c.id);
+                                                    setPickerOpen(false);
+                                                }}
+                                            >
+                                                {c.first_name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="p-3">
+                                        <button
+                                            className="w-full border rounded-xl py-2"
+                                            onClick={() => setPickerOpen(false)}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 {/* Fecha */}
                 <label className="block text-sm mb-2 font-medium text-gray-700">
