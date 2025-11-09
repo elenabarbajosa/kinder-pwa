@@ -74,7 +74,9 @@ export default function Today() {
     const total = visible.length;
     const absentCount = visible.filter((r) => r.absent).length;
     const busChangeCount = visible.filter(
-        (r) => r.bus_morning_today !== r.takes_bus_morning || r.bus_afternoon_today !== r.takes_bus_afternoon
+        (r) =>
+            r.bus_morning_today !== r.takes_bus_morning ||
+            r.bus_afternoon_today !== r.takes_bus_afternoon
     ).length;
     const timeChangeCount = visible.filter((r) => r.exception_id && !r.absent).length;
 
@@ -125,17 +127,17 @@ export default function Today() {
         <main className="p-4 max-w-3xl mx-auto">
             <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Hoy</h1>
 
-            {/* Filters */}
+            {/* ✅ Filters */}
             <div className="flex flex-wrap gap-2 mb-6 items-center">
-                {/* ⬇️ iOS-safe select wrapper */}
-                <div className="relative z-[9999] overflow-visible pointer-events-auto">
+                <div className="relative z-50 transform-none">
                     <select
                         value={selectedClass}
                         onChange={(e) => setSelectedClass(e.target.value as any)}
-                        className="z-[9999] relative border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all appearance-auto"
+                        className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all cursor-pointer touch-manipulation z-50"
                         style={{
-                            WebkitAppearance: 'menulist',
-                            WebkitTouchCallout: 'none',
+                            WebkitTransform: 'none',
+                            WebkitAppearance: 'menulist-button',
+                            WebkitTouchCallout: 'default',
                             WebkitTapHighlightColor: 'rgba(0,0,0,0)',
                         }}
                     >
@@ -158,6 +160,7 @@ export default function Today() {
                     Solo cambios
                 </label>
             </div>
+
 
             {/* Filter bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm flex flex-wrap gap-3 text-sm mt-2 mb-4">
@@ -308,13 +311,13 @@ function SmoothSwipeCard({
                     <div>
                         <div
                             className={`text-base font-semibold mb-2 ${r.note
-                                    ? 'text-[var(--color-note-text)]'
-                                    : r.absent
-                                        ? 'text-[var(--color-text-purple)]'
-                                        : r.bus_morning_today !== r.takes_bus_morning ||
-                                            r.bus_afternoon_today !== r.takes_bus_afternoon
-                                            ? 'text-[var(--color-text-blue)]'
-                                            : 'text-[var(--color-primary-dark)]'
+                                ? 'text-[var(--color-note-text)]'
+                                : r.absent
+                                    ? 'text-[var(--color-text-purple)]'
+                                    : r.bus_morning_today !== r.takes_bus_morning ||
+                                        r.bus_afternoon_today !== r.takes_bus_afternoon
+                                        ? 'text-[var(--color-text-blue)]'
+                                        : 'text-[var(--color-primary-dark)]'
                                 }`}
                         >
                             {r.first_name}

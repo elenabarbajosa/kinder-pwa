@@ -26,11 +26,14 @@ export default function ChangePage() {
     const [busAfternoon, setBusAfternoon] = useState(false);
     const [absent, setAbsent] = useState(false);
 
+    // Load students
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
                 .from('children')
-                .select('id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon')
+                .select(
+                    'id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon'
+                )
                 .order('first_name');
             if (!error) setChildren((data as Child[]) ?? []);
         })();
@@ -93,22 +96,21 @@ export default function ChangePage() {
 
     return (
         <main className="min-h-screen p-6 flex justify-center bg-[var(--color-bg)]">
-            {/* ensure this card never clips the iOS picker */}
             <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)] overflow-visible">
                 <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)] text-center">
                     Registrar cambio de horario
                 </h1>
 
-                {/* ⬇️ iOS-safe select wrapper */}
-                <div className="relative z-[9999] overflow-visible pointer-events-auto mb-4">
+                {/* ✅ iOS dropdown fix */}
+                <div className="relative mb-4 z-50 transform-none">
                     <select
                         value={childId}
                         onChange={(e) => handleSelectChild(e.target.value)}
-                        className="z-[9999] relative border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all appearance-auto"
-                        // iOS tap reliability
+                        className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all cursor-pointer touch-manipulation z-50"
                         style={{
-                            WebkitAppearance: 'menulist',
-                            WebkitTouchCallout: 'none',
+                            WebkitTransform: 'none',
+                            WebkitAppearance: 'menulist-button',
+                            WebkitTouchCallout: 'default',
                             WebkitTapHighlightColor: 'rgba(0,0,0,0)',
                         }}
                     >
