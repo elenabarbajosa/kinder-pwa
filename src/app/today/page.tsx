@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 
-// 🕒 Format times like "08:00:00" → "08:00"
 function formatTime(time: string) {
     if (!time) return '';
     return time.slice(0, 5);
@@ -38,7 +37,6 @@ export default function Today() {
     const [filterAbsent, setFilterAbsent] = useState(false);
     const [filterNotes, setFilterNotes] = useState(false);
 
-    // Load data
     const loadToday = async () => {
         const { data, error } = await supabase.from('today_view').select('*');
         if (!error) setRows((data as Row[]) ?? []);
@@ -55,8 +53,7 @@ export default function Today() {
         loadToday();
     }, []);
 
-    // ❌ Revert change (delete exception)
-    const handleRevert = async (exceptionId: string | null, childName: string) => {
+    const handleRevert = async (exceptionId: string | null) => {
         if (!exceptionId) return alert('Este alumn@ no tiene cambio para revertir.');
         const { error } = await supabase.from('exceptions').delete().eq('id', exceptionId);
         if (error) {
@@ -66,7 +63,6 @@ export default function Today() {
         await loadToday();
     };
 
-    // Filters
     const visible = rows
         .filter((r) => selectedClass === 'all' || r.classroom_id === selectedClass)
         .filter((r) => !changedOnly || r.exception_id)
@@ -75,17 +71,13 @@ export default function Today() {
         .filter((r) => !filterAbsent || r.absent)
         .filter((r) => !filterNotes || r.note);
 
-    // Summary
     const total = visible.length;
     const absentCount = visible.filter((r) => r.absent).length;
     const busChangeCount = visible.filter(
-        (r) =>
-            r.bus_morning_today !== r.takes_bus_morning ||
-            r.bus_afternoon_today !== r.takes_bus_afternoon
+        (r) => r.bus_morning_today !== r.takes_bus_morning || r.bus_afternoon_today !== r.takes_bus_afternoon
     ).length;
     const timeChangeCount = visible.filter((r) => r.exception_id && !r.absent).length;
 
-    // 🟨 Card color logic
     const cardColor = (r: Row) => {
         if (r.note)
             return 'bg-[var(--color-note)] border-[var(--color-note-border)] text-[var(--color-note-text)]';
@@ -131,24 +123,30 @@ export default function Today() {
 
     return (
         <main className="p-4 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">
-                Hoy
-            </h1>
+            <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)]">Hoy</h1>
 
             {/* Filters */}
             <div className="flex flex-wrap gap-2 mb-6 items-center">
-                <select
-                    className="border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value as any)}
-                >
-                    <option value="all">Todas las clases</option>
-                    {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                            {c.name}
-                        </option>
-                    ))}
-                </select>
+                {/* ⬇️ iOS-safe select wrapper */}
+                <div className="relative z-[9999] overflow-visible pointer-events-auto">
+                    <select
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value as any)}
+                        className="z-[9999] relative border border-[var(--color-border)] rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all appearance-auto"
+                        style={{
+                            WebkitAppearance: 'menulist',
+                            WebkitTouchCallout: 'none',
+                            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                        }}
+                    >
+                        <option value="all">Todas las clases</option>
+                        {classes.map((c) => (
+                            <option key={c.id} value={c.id}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <label className="flex items-center gap-2 text-sm">
                     <input
@@ -206,7 +204,9 @@ export default function Today() {
 
             {/* Summary bar */}
             <div className="bg-white border border-[var(--color-border)] rounded-2xl p-3 mb-4 shadow-sm text-sm text-gray-700 flex flex-wrap justify-between">
-                <span>Total: <strong>{total}</strong></span>
+                <span>
+                    Total: <strong>{total}</strong>
+                </span>
                 <span className="text-[var(--color-primary-dark)]">
                     Cambios: <strong>{timeChangeCount}</strong>
                 </span>
@@ -247,7 +247,6 @@ export default function Today() {
     );
 }
 
-/* 🧩 Subcomponent with smoother swipe + confirm once */
 function SmoothSwipeCard({
     row: r,
     cardColor,
@@ -259,7 +258,7 @@ function SmoothSwipeCard({
     cardColor: (r: Row) => string;
     badge: (r: Row) => string;
     busBadge: (r: Row) => string;
-    handleRevert: (id: string | null, name: string) => void;
+    handleRevert: (id: string | null) => void;
 }) {
     const x = useMotionValue(0);
     const deletingRef = useRef(false);
@@ -270,7 +269,6 @@ function SmoothSwipeCard({
 
     return (
         <div className="relative">
-            {/* ❌ red background under card */}
             <div className="absolute inset-0 flex items-center justify-end pr-6 z-0">
                 <span className="text-red-600 text-3xl select-none">❌</span>
             </div>
@@ -294,7 +292,7 @@ function SmoothSwipeCard({
                             `¿Seguro que quieres eliminar el cambio de ${r.first_name}?`
                         );
 
-                        if (confirmed) handleRevert(r.exception_id, r.first_name);
+                        if (confirmed) handleRevert(r.exception_id);
 
                         resetPosition();
 

@@ -22,19 +22,15 @@ export default function ChangePage() {
     const [saving, setSaving] = useState(false);
     const [ok, setOk] = useState<string>('');
 
-    // new states for bus and absence
     const [busMorning, setBusMorning] = useState(false);
     const [busAfternoon, setBusAfternoon] = useState(false);
     const [absent, setAbsent] = useState(false);
 
-    // cargar alumn@s (with default schedules)
     useEffect(() => {
         (async () => {
             const { data, error } = await supabase
                 .from('children')
-                .select(
-                    'id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon'
-                )
+                .select('id, first_name, default_in, default_out, takes_bus_morning, takes_bus_afternoon')
                 .order('first_name');
             if (!error) setChildren((data as Child[]) ?? []);
         })();
@@ -46,7 +42,6 @@ export default function ChangePage() {
         if (selected) {
             setNewIn(selected.default_in || '');
             setNewOut(selected.default_out || '');
-            // ✅ Default to database bus settings
             setBusMorning(!!selected.takes_bus_morning);
             setBusAfternoon(!!selected.takes_bus_afternoon);
         } else {
@@ -98,24 +93,33 @@ export default function ChangePage() {
 
     return (
         <main className="min-h-screen p-6 flex justify-center bg-[var(--color-bg)]">
-            <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)]">
+            {/* ensure this card never clips the iOS picker */}
+            <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[var(--color-border)] overflow-visible">
                 <h1 className="text-2xl font-semibold mb-6 text-[var(--color-primary-dark)] text-center">
                     Registrar cambio de horario
                 </h1>
 
-                {/* Selector de alumn@ */}
-                <select
-                    className="border border-[var(--color-border)] rounded-xl px-4 py-2 w-full mb-4 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
-                    value={childId}
-                    onChange={(e) => handleSelectChild(e.target.value)}
-                >
-                    <option value="">Elige alumn@…</option>
-                    {children.map((c) => (
-                        <option key={c.id} value={c.id}>
-                            {c.first_name}
-                        </option>
-                    ))}
-                </select>
+                {/* ⬇️ iOS-safe select wrapper */}
+                <div className="relative z-[9999] overflow-visible pointer-events-auto mb-4">
+                    <select
+                        value={childId}
+                        onChange={(e) => handleSelectChild(e.target.value)}
+                        className="z-[9999] relative border border-[var(--color-border)] rounded-xl px-4 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all appearance-auto"
+                        // iOS tap reliability
+                        style={{
+                            WebkitAppearance: 'menulist',
+                            WebkitTouchCallout: 'none',
+                            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                        }}
+                    >
+                        <option value="">Elige alumn@…</option>
+                        {children.map((c) => (
+                            <option key={c.id} value={c.id}>
+                                {c.first_name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 {/* Fecha */}
                 <label className="block text-sm mb-2 font-medium text-gray-700">
@@ -155,7 +159,7 @@ export default function ChangePage() {
                     </label>
                 </div>
 
-                {/* Opciones de bus y ausencia */}
+                {/* Opciones */}
                 <div className="flex flex-col gap-3 mb-4">
                     <label className="flex items-center gap-2 text-sm">
                         <input
@@ -188,7 +192,6 @@ export default function ChangePage() {
                     </label>
                 </div>
 
-                {/* Nota */}
                 <label className="block text-sm mb-4 font-medium text-gray-700">
                     Nota
                     <input
@@ -199,7 +202,6 @@ export default function ChangePage() {
                     />
                 </label>
 
-                {/* Botón Guardar */}
                 <button
                     onClick={submit}
                     disabled={saving}
