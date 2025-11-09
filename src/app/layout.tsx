@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { es as t } from '@/strings';
 import SWRegister from './sw-register';
-import Navbar from './Navbar'; // 👈 client component
+import ClientLayout from './ClientLayout'; // 👈 new client wrapper
 
 export const metadata: Metadata = {
   title: t.appTitle,
@@ -18,6 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#ff6fa8" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
+        {/* ✅ iOS fixes for viewport & input controls */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+        />
+
         {/* ✅ Favicons */}
         <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
@@ -27,15 +35,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/favicon/site.webmanifest" />
       </head>
 
-      <body className="bg-[var(--color-bg)] text-black min-h-screen">
-        {/* ✅ Register service worker */}
+      <body className="bg-[var(--color-bg)] text-black min-h-screen overflow-x-hidden touch-manipulation">
         <SWRegister />
-
-        {/* ✅ Navbar now imported as client component */}
-        <Navbar />
-
-        {/* ✅ Space below navbar */}
-        <main className="pt-20 px-4 sm:px-8 max-w-5xl mx-auto">{children}</main>
+        {/* ✅ Client-only layout logic */}
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

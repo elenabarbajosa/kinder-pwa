@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
 export default function Navbar() {
     const pathname = usePathname();
+    const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
 
     const linkClass = (path: string) =>
@@ -13,6 +15,11 @@ export default function Navbar() {
             ? 'border-[var(--color-primary)] text-[var(--color-primary)] font-semibold'
             : 'border-transparent text-gray-700 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]'
         }`;
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
+    };
 
     return (
         <header className="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md border-b border-[var(--color-border)] shadow-sm z-50">
@@ -31,21 +38,19 @@ export default function Navbar() {
 
                 {/* Desktop nav */}
                 <nav className="hidden sm:flex items-center gap-8 text-sm font-medium">
-                    <a href="/" className={linkClass('/')}>
-                        Inicio
-                    </a>
-                    <a href="/today" className={linkClass('/today')}>
-                        Hoy
-                    </a>
-                    <a href="/change" className={linkClass('/change')}>
-                        Registrar cambio
-                    </a>
-                    <a href="/children" className={linkClass('/children')}>
-                        Alumn@s
-                    </a>
+                    <a href="/" className={linkClass('/')}>Inicio</a>
+                    <a href="/today" className={linkClass('/today')}>Hoy</a>
+                    <a href="/change" className={linkClass('/change')}>Registrar cambio</a>
+                    <a href="/children" className={linkClass('/children')}>Alumn@s</a>
+                    <button
+                        onClick={handleLogout}
+                        className="text-gray-700 hover:text-[var(--color-primary)] transition"
+                    >
+                        Cerrar sesión
+                    </button>
                 </nav>
 
-                {/* Hamburger icon (mobile only) */}
+                {/* Hamburger (mobile only) */}
                 <button
                     className="sm:hidden flex flex-col justify-center items-center w-8 h-8"
                     onClick={() => setMenuOpen((prev) => !prev)}
@@ -88,6 +93,15 @@ export default function Navbar() {
                         <a href="/children" className={linkClass('/children')} onClick={() => setMenuOpen(false)}>
                             Alumn@s
                         </a>
+                        <button
+                            onClick={() => {
+                                setMenuOpen(false);
+                                handleLogout();
+                            }}
+                            className="text-left text-gray-700 hover:text-[var(--color-primary)] transition"
+                        >
+                            Cerrar sesión
+                        </button>
                     </motion.nav>
                 )}
             </AnimatePresence>

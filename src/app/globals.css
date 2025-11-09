@@ -35,7 +35,7 @@
   --color-note-border: #e6d96b;
   --color-note-text: #8d4712;
   --color-nav-bg: rgba(255, 255, 255, 0.6);
-  
+
 }
 
 
@@ -90,4 +90,11 @@ body {
 
 body {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
 }
